@@ -7,12 +7,14 @@
 class MQTTClient
 {
 public:
+    std::string getHostname();
     MQTTClient(const std::string &broker, int port, const std::string &client_id);
     ~MQTTClient();
 
     bool connect();
     void disconnect();
-    bool publish(const std::string &topic, const std::string &message);
+    bool publish(const std::string &topic, const std::string &message, bool retain = false);
+    void publishDiscoveryMessage(); // New function
 
 private:
     struct mosquitto *mosq;

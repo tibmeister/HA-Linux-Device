@@ -1,17 +1,17 @@
 [Unit]
-Description=MQTT Data Writer Service
+Description=Home Assistant MQTT Device Sensor Publisher
 After=network.target
 
 [Service]
-ExecStart=/usr/local/bin/mqtt-app
+ExecStart=/usr/local/bin/ha-mqtt-device
 Restart=always
 User=nobody
 Group=nogroup
-EnvironmentFile=/etc/mqtt-app.conf
+EnvironmentFile=/etc/ha-mqtt-device
 WorkingDirectory=/usr/local/bin
 StandardOutput=syslog
 StandardError=syslog
-SyslogIdentifier=mqtt-app
+SyslogIdentifier=ha-mqtt-device
 
 [Install]
 WantedBy=multi-user.target

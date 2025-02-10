@@ -11,6 +11,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(MOSQUITTO REQUIRED libmosquitto)
 
+# Find the nlohmann_json library
+find_package(nlohmann_json REQUIRED)
+
 # Define source files
 set(SOURCES
     src/main.cpp
@@ -43,3 +46,4 @@ install(FILES systemd/ha-mqtt-device.service DESTINATION /etc/systemd/system)
 add_custom_target(uninstall
     COMMAND xargs rm < install_manifest.txt
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)
