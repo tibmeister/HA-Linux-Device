@@ -19,6 +19,7 @@ set(SOURCES
     src/main.cpp
     src/config.cpp
     src/mqtt_client.cpp
+    src/battery_status.cpp
 )
 
 # Define include directories

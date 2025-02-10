@@ -64,15 +64,8 @@ int main()
 
     while (true)
     {
-        float temperature = 22.5; // Simulated sensor data
-
-        json sensor_data = {
-            {"temperature", temperature}};
-
-        std::string message = sensor_data.dump();
-        client.publish(state_topic, message);
-
-        std::cout << "Published Sensor Data to " << state_topic << ": " << message << std::endl;
+        // Publish battery status information
+        publishBatteryStatus(client, state_topic);
 
         std::this_thread::sleep_for(std::chrono::seconds(interval));
     }
