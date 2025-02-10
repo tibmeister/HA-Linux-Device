@@ -1,25 +1,23 @@
 #include "mqtt_client.h"
 #include <iostream>
-#include <unistd.h>
 #include <nlohmann/json.hpp> // JSON library
+#include <mosquitto.h>
 
 using json = nlohmann::json;
 
-std::string MQTTClient::getHostname()
+MQTTClient::MQTTClient(const std::string &broker, int port, const std::string &client_id)
+    : broker(broker), port(port), client_id(client_id)
 {
-    char hostname[128];
-    if (gethostname(hostname, sizeof(hostname)) == 0)
+    mosquitto_lib_init();
+    mosq = mosquitto_new(client_id.c_str(), true, nullptr);
+    if (!mosq)
     {
-        return std::string(hostname);
-    }
-    else
-    {
-        return "unknown_device";
+        std::cerr << "Failed to create Mosquitto instance." << std::endl;
     }
 }
 
-MQTTClient::MQTTClient(const std::string &broker, int port, const std::string &client_id)
-    : broker(broker), port(port), client_id(client_id)
+MQTTClient::MQTTClient(const std::string &broker, int port, const std::string &client_id, const std::string &username, const std::string &password)
+    : broker(broker), port(port), client_id(client_id), username(username), password(password)
 {
     mosquitto_lib_init();
     mosq = mosquitto_new(client_id.c_str(), true, nullptr);
@@ -38,6 +36,12 @@ MQTTClient::~MQTTClient()
 
 bool MQTTClient::connect()
 {
+    // If username and password are provided, use them to authenticate
+    if (!username.empty() && !password.empty())
+    {
+        mosquitto_username_pw_set(mosq, username.c_str(), password.c_str());
+    }
+
     if (mosquitto_connect(mosq, broker.c_str(), port, 60) != MOSQ_ERR_SUCCESS)
     {
         std::cerr << "Failed to connect to MQTT broker: " << broker << std::endl;
@@ -60,16 +64,37 @@ bool MQTTClient::publish(const std::string &topic, const std::string &message, b
 // Publish the Home Assistant Discovery Message
 void MQTTClient::publishDiscoveryMessage()
 {
-    std::string hostname = getHostname();
-    std::string discovery_topic = "homeassistant/sensor/" + hostname + "/config";
+    std::string discovery_topic = "homeassistant/sensor/" + client_id + "/config";
 
     json discovery_msg = {
-        {"name", "HA MQTT Device (" + hostname + ")"},
-        {"unique_id", "ha_mqtt_device_" + hostname},
-        {"state_topic", "homeassistant/sensor/" + hostname + "/state"},
+        {"name", "HA MQTT Device (" + client_id + ")"},
+        {"unique_id", "ha_mqtt_device_" + client_id},
+        {"state_topic", "homeassistant/sensor/" + client_id + "/state"},
         {"unit_of_measurement", "°C"},
-        {"device", {{"identifiers", hostname}, {"name", "HA MQTT Device (" + hostname + ")"}, {"manufacturer", "Custom"}, {"model", "v1.0"}}}};
+        {"device", {{"identifiers", client_id}, {"name", "HA MQTT Device (" + client_id + ")"}, {"manufacturer", "Custom"}, {"model", "v1.0"}}}};
 
     std::string payload = discovery_msg.dump();
     publish(discovery_topic, payload, true);
+}
+
+void MQTTClient::setTLSOptions(bool tls_enabled, bool skip_verify)
+{
+    if (tls_enabled)
+    {
+        if (mosquitto_tls_set(mosq, NULL, NULL, NULL, NULL, NULL) != MOSQ_ERR_SUCCESS)
+        {
+            std::cerr << "Failed to set TLS options." << std::endl;
+            return;
+        }
+
+        // Optionally, skip verification if configured
+        if (skip_verify)
+        {
+            if (mosquitto_tls_insecure_set(mosq, true) != MOSQ_ERR_SUCCESS)
+            {
+                std::cerr << "Failed to set TLS insecure (skip verification)." << std::endl;
+                return;
+            }
+        }
+    }
 }

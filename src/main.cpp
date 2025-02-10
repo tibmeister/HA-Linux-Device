@@ -43,12 +43,24 @@ int main()
     std::string broker = Config::get("MQTT", "broker");
     int port = std::stoi(Config::get("MQTT", "port"));
     std::string client_id = Config::get("MQTT", "client_id");
-
     int interval = std::stoi(Config::get("App", "interval"));
 
-    MQTTClient client(broker, port, client_id);
-    std::string hostname = client.getHostname();
-    std::string state_topic = "homeassistant/sensor/" + hostname + "/state";
+    // Get username and password from the config
+    std::string username = Config::get("MQTT", "username");
+    std::string password = Config::get("MQTT", "password");
+
+    // Get TLS configuration from the config
+    bool tls_enabled = Config::get("MQTT", "tls_enabled") == "true";
+    bool skip_verify = Config::get("MQTT", "skip_verify") == "true";
+
+    MQTTClient client = (!username.empty() && !password.empty())
+                            ? MQTTClient(broker, port, client_id, username, password) // Authenticated connection
+                            : MQTTClient(broker, port, client_id);                    // Non-authenticated connection
+
+    // Set the TSL options
+    client.setTLSOptions(tls_enabled, skip_verify);
+
+    std::string state_topic = "homeassistant/sensor/" + client_id + "/state";
 
     if (!client.connect())
     {
